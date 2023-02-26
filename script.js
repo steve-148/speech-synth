@@ -1,3 +1,4 @@
+// define the spelling words
 const spellings = {
   Autumn1: {
     Week1: {
@@ -149,49 +150,61 @@ const spellings = {
   },
 };
 
+// initiate the synth
 const synth = window.speechSynthesis;
-const inputTxt = spellings;
 
-const inputForm = document.querySelector("form");
+// grab the UI elements
 const termSelect = document.querySelector("#term");
 const weekSelect = document.querySelector("#week");
+const startButton = document.querySelector("#start");
+startButton.disabled = false;
+let started = false;
 const stopButton = document.querySelector("#stop");
+stopButton.disabled = true;
 let stopped = false;
+const pauseButton = document.querySelector("#pause");
+pauseButton.disabled = true;
+let paused = false;
+const resumeButton = document.querySelector("#resume");
+resumeButton.disabled = true;
+let resumed = false;
 
-stopButton.onclick = function() {
-  if (!stopped) {
-    stopped = true;
-  }
-}
-
-const spellingsModal = new bootstrap.Modal(
-  document.querySelector("#spellings-modal")
-);
+// get the delay and display value
 const delay = document.querySelector("#delay");
 const delayValue = document.querySelector(".delay-value");
-delayValue.textContent =
-  delay.value === "1" ? `${delay.value} second` : `${delay.value} seconds`;
+delayValue.textContent = delay.value === "1" ? `${delay.value} second` : `${delay.value} seconds`;
+// display the changed value
+delay.onchange = function () {
+  delayValue.textContent = delay.value === "1" ? `${delay.value} second` : `${delay.value} seconds`;
+};
 
+// not sure what this is for
+const spellingsModal = new bootstrap.Modal(document.querySelector("#spellings-modal"));
+
+// school terms
 const terms = Object.keys(spellings);
 
+// create the select term options
 terms.forEach((term) => {
   const option = document.createElement("option");
   option.textContent = `${term}`;
   termSelect.appendChild(option);
 });
 
+// school weeks
 const weeks = Object.keys(spellings[termSelect.value]);
 
+// create the select week options
 const option = document.createElement("option");
 option.textContent = "All";
 weekSelect.appendChild(option);
-
 weeks.forEach((week) => {
   const option = document.createElement("option");
   option.textContent = `${week}`;
   weekSelect.appendChild(option);
 });
 
+// repopulate the select week options when term changed
 termSelect.addEventListener("change", () => {
   while (weekSelect.firstChild) {
     weekSelect.removeChild(weekSelect.firstChild);
@@ -207,47 +220,86 @@ termSelect.addEventListener("change", () => {
   });
 });
 
+// get the voices and select one
 const voices = synth.getVoices();
-console.log(voices);
-const GBvoiceSusan = voices.filter((voice) => {
-  return voice.lang == "en-GB" && voice.name.includes("Susan");
+const GBvoice = voices.filter((voice) => {
+  return voice.lang == "en-GB";
 });
 
-async function speak(word) {
-  return new Promise((resolve, reject) => {
-    const utterThis = new SpeechSynthesisUtterance(word);
+// listen to the stop button
+stopButton.addEventListener("click", () => {
+  startButton.disabled = false;
+  stopButton.disabled = true;
+  pauseButton.disabled = true;
+  resumeButton.disabled = true;
 
-    if (stopped === true) {
-      window.stop();
-      return false;
-    }
+  stopped = true;
+  started = false;
+  paused = false;
+  resumed = false;
 
-    utterThis.voice = GBvoiceSusan[0];
-    utterThis.pitch = 0.7;
-    utterThis.rate = 0.8;
-    synth.speak(utterThis);
+  remainingWords = [];
 
-    
-  });
+  console.log(`Stopped: ${stopped}`);
+});
+
+// listen to the pause button
+pauseButton.addEventListener("click", () => {
+  startButton.disabled = false;
+  stopButton.disabled = false;
+  pauseButton.disabled = true;
+  resumeButton.disabled = false;
+
+  paused = true;
+  resumed = false;
+  started = false;
+  stopped = false;
+
+  console.log(`Paused: ${paused}`);
+});
+
+// speak a single word
+async function speakWord(word) {
+  console.log(word);
+  const utterThis = new SpeechSynthesisUtterance(word);
+  utterThis.voice = GBvoice[1];
+  utterThis.pitch = 1;
+  utterThis.rate = 1;
+  synth.speak(utterThis);
 }
 
-const timer = (ms) => new Promise((res) => setTimeout(res, ms));
-
-const wordLoop = async (words, delay) => {
-  for (let i = 0; i < words.length; i++) {
-    speak(words[i]);
-    await timer(delay);
-    if (stopped === true) {
-      window.stop();
-      return false;
-    }
-  }
+// define delay function
+const addDelay = (t, data) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve.bind(null, data), t);
+  });
 };
 
-inputForm.onsubmit = async function (event) {
-  event.preventDefault();
-  // get the required spelling words
-  const words = [];
+// define slice function
+async function sliceWords(wordArray) {
+  return wordArray.slice(1);
+}
+
+var remainingWords = [];
+
+startButton.onclick = async function () {
+  if (started || resumed) {
+    return;
+  }
+
+  console.log("start clicked");
+
+  startButton.disabled = true;
+  stopButton.disabled = false;
+  pauseButton.disabled = false;
+  resumeButton.disabled = true;
+
+  started = true;
+  stopped = false;
+  paused = false;
+  resumed = false;
+
+  let words = [];
   if (weekSelect.value == "All") {
     for (const week in spellings[termSelect.value]) {
       for (const key in spellings[termSelect.value][week]) {
@@ -259,15 +311,45 @@ inputForm.onsubmit = async function (event) {
       words.push(spellings[termSelect.value][weekSelect.value][key]);
     }
   }
-  stopped = false;
-  wordLoop(words, delay.value * 1000);
-  if (stopped === true) {
-    window.stop();
-    return false;
+  console.log(words);
+
+  remainingWords = words;
+
+  for (let word of words) {
+    await speakWord(word)
+      .then(await addDelay.bind(null, 1000 * delay.value))
+      .then(remainingWords = await sliceWords(remainingWords));
+    if (stopped || paused) {
+      break;
+    }
+    console.log(remainingWords);
   }
 };
 
-delay.onchange = function () {
-  delayValue.textContent =
-    delay.value === "1" ? `${delay.value} second` : `${delay.value} seconds`;
+resumeButton.onclick = async function () {
+  if (stopped || started || resumed || remainingWords.length === 0) {
+    console.log("resume returned", stopped, started, !paused, resumed, remainingWords.length);
+    return;
+  }
+  console.log("resume clicked");
+
+  startButton.disabled = true;
+  stopButton.disabled = false;
+  pauseButton.disabled = false;
+  resumeButton.disabled = true;
+
+  started = false;
+  stopped = false;
+  paused = false;
+  resumed = true;
+
+  for (let word of remainingWords) {
+    await speakWord(word)
+      .then(await addDelay.bind(null, 1000 * delay.value))
+      .then(remainingWords = await sliceWords(remainingWords));
+    if (stopped || paused) {
+      break;
+    }
+    console.log(remainingWords);
+  }
 };
