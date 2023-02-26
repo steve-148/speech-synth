@@ -260,7 +260,6 @@ pauseButton.addEventListener("click", () => {
 
 // speak a single word
 async function speakWord(word) {
-  console.log(word);
   const utterThis = new SpeechSynthesisUtterance(word);
   utterThis.voice = GBvoice[1];
   utterThis.pitch = 1;
@@ -282,6 +281,7 @@ async function sliceWords(wordArray) {
 
 var remainingWords = [];
 
+// problem - when start button is pressed during timeout, get two instances of synth
 startButton.onclick = async function () {
   if (started || resumed) {
     return;
@@ -311,21 +311,23 @@ startButton.onclick = async function () {
       words.push(spellings[termSelect.value][weekSelect.value][key]);
     }
   }
-  console.log(words);
 
   remainingWords = words;
 
   for (let word of words) {
+    console.log(remainingWords);
+
     await speakWord(word)
       .then(await addDelay.bind(null, 1000 * delay.value))
-      .then(remainingWords = await sliceWords(remainingWords));
+      .then((remainingWords = await sliceWords(remainingWords)));
+
     if (stopped || paused) {
       break;
     }
-    console.log(remainingWords);
   }
 };
 
+// problem - when resume button is pressed during timeout, get two instances of synth
 resumeButton.onclick = async function () {
   if (stopped || started || resumed || remainingWords.length === 0) {
     console.log("resume returned", stopped, started, !paused, resumed, remainingWords.length);
@@ -344,12 +346,14 @@ resumeButton.onclick = async function () {
   resumed = true;
 
   for (let word of remainingWords) {
+    console.log(remainingWords);
+
     await speakWord(word)
       .then(await addDelay.bind(null, 1000 * delay.value))
-      .then(remainingWords = await sliceWords(remainingWords));
+      .then((remainingWords = await sliceWords(remainingWords)));
+
     if (stopped || paused) {
       break;
     }
-    console.log(remainingWords);
   }
 };
