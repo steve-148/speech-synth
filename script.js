@@ -168,6 +168,24 @@ let paused = false;
 const resumeButton = document.querySelector("#resume");
 resumeButton.disabled = true;
 let resumed = false;
+const showModal = document.querySelector("#show-modal");
+showModal.style.visibility = 'hidden';
+const spellingsModal = document.getElementById("spellings-modal");
+const modalBody = spellingsModal.querySelector(".modal-body");
+
+// this isn't working
+const addModalBody = (body) => {
+  spellingsModal.addEventListener("show.bs.modal", (event) => {
+    const list = document.createElement("ul");
+    body.forEach((word)=> {
+      const item = document.createElement("li");
+      item.innerHtml = `<p>${word}</p>`;
+      list.appendChild(item)
+    });
+    
+    modalBody.appendChild(list);
+  });
+}
 
 // get the delay and display value
 const delay = document.querySelector("#delay");
@@ -177,9 +195,6 @@ delayValue.textContent = delay.value === "1" ? `${delay.value} second` : `${dela
 delay.onchange = function () {
   delayValue.textContent = delay.value === "1" ? `${delay.value} second` : `${delay.value} seconds`;
 };
-
-// not sure what this is for
-const spellingsModal = new bootstrap.Modal(document.querySelector("#spellings-modal"));
 
 // school terms
 const terms = Object.keys(spellings);
@@ -232,15 +247,12 @@ stopButton.addEventListener("click", () => {
   stopButton.disabled = true;
   pauseButton.disabled = true;
   resumeButton.disabled = true;
-
-  stopped = true;
   started = false;
+  stopped = true;
   paused = false;
-  resumed = false;
+  resumed = true;
 
-  remainingWords = [];
-
-  console.log(`Stopped: ${stopped}`);
+  abc?.abort();
 });
 
 // listen to the pause button
@@ -255,22 +267,23 @@ pauseButton.addEventListener("click", () => {
   started = false;
   stopped = false;
 
-  console.log(`Paused: ${paused}`);
+  abc?.abort();
 });
 
 // speak a single word
-async function speakWord(word) {
-  const utterThis = new SpeechSynthesisUtterance(word);
-  utterThis.voice = GBvoice[1];
-  utterThis.pitch = 1;
-  utterThis.rate = 1;
-  synth.speak(utterThis);
-}
-
-// define delay function
-const addDelay = (t, data) => {
-  return new Promise((resolve) => {
-    setTimeout(resolve.bind(null, data), t);
+const speakWord = async (word) => {
+  return new Promise((resolve, reject) => {
+    const utterThis = new SpeechSynthesisUtterance(word);
+    utterThis.voice = GBvoice[1];
+    utterThis.pitch = 1;
+    utterThis.rate = 1;
+    utterThis.addEventListener("end", () => {
+      resolve();
+    });
+    utterThis.addEventListener("error", (event) => {
+      reject(event.error);
+    });
+    synth.speak(utterThis);
   });
 };
 
@@ -281,18 +294,18 @@ async function sliceWords(wordArray) {
 
 var remainingWords = [];
 
-// problem - when start button is pressed during timeout, get two instances of synth
+let abc = null;
+
+// define the function to add a delay between words
+const wait = async (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// start the spelling practice
 startButton.onclick = async function () {
-  if (started || resumed) {
-    return;
-  }
-
-  console.log("start clicked");
-
   startButton.disabled = true;
   stopButton.disabled = false;
   pauseButton.disabled = false;
   resumeButton.disabled = true;
+  showModal.style.visibility = 'hidden';
 
   started = true;
   stopped = false;
@@ -312,29 +325,32 @@ startButton.onclick = async function () {
     }
   }
 
+  addModalBody(words);
+
   remainingWords = words;
 
+  abc?.abort();
+  const myAbc = (abc = new AbortController());
+
   for (let word of words) {
+    if (myAbc.signal.aborted) break;
     console.log(remainingWords);
+    await speakWord(word);
 
-    await speakWord(word)
-      .then(await addDelay.bind(null, 1000 * delay.value))
-      .then((remainingWords = await sliceWords(remainingWords)));
-
-    if (stopped || paused) {
-      break;
+    await wait(1000 * delay.value);
+    remainingWords = await sliceWords(remainingWords);
+    if (remainingWords.length === 0) {
+      startButton.disabled = false;
+      stopButton.disabled = true;
+      pauseButton.disabled = true;
+      resumeButton.disabled = true;
+      showModal.style.visibility = 'visible';
     }
   }
 };
 
-// problem - when resume button is pressed during timeout, get two instances of synth
+// resume the spelling practice
 resumeButton.onclick = async function () {
-  if (stopped || started || resumed || remainingWords.length === 0) {
-    console.log("resume returned", stopped, started, !paused, resumed, remainingWords.length);
-    return;
-  }
-  console.log("resume clicked");
-
   startButton.disabled = true;
   stopButton.disabled = false;
   pauseButton.disabled = false;
@@ -345,15 +361,21 @@ resumeButton.onclick = async function () {
   paused = false;
   resumed = true;
 
+  abc?.abort();
+  const myAbc = (abc = new AbortController());
+
   for (let word of remainingWords) {
+    if (myAbc.signal.aborted) break;
     console.log(remainingWords);
-
-    await speakWord(word)
-      .then(await addDelay.bind(null, 1000 * delay.value))
-      .then((remainingWords = await sliceWords(remainingWords)));
-
-    if (stopped || paused) {
-      break;
+    await speakWord(word);
+    await wait(1000 * delay.value);
+    remainingWords = await sliceWords(remainingWords);
+    if (remainingWords.length === 0) {
+      startButton.disabled = false;
+      stopButton.disabled = true;
+      pauseButton.disabled = true;
+      resumeButton.disabled = true;
+      showModal.style.visibility = 'visible';
     }
   }
 };
