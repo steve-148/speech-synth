@@ -1,3 +1,10 @@
+// initialize tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+  return new bootstrap.Tooltip(tooltipTriggerEl)
+})
+
+
 // define the spelling words
 const spellings = {
   Autumn1: {
@@ -148,6 +155,106 @@ const spellings = {
       10: "physical",
     },
   },
+  Spring1: {
+    Week1: {
+      1: "flexible",
+      2: "audible",
+      3: "variable",
+      4: "arguably",
+      5: "reasonable",
+      6: "eligible",
+      7: "illegible",
+      8: "reversible",
+      9: "responsible",
+      10: "sensible",
+    },
+    Week2: {
+      1: "advice",
+      2: "prophecy",
+      3: "licence",
+      4: "practise",
+      5: "device",
+      6: "advise",
+      7: "license",
+      8: "practice",
+      9: "devise",
+      10: "prophesy",
+    },
+    Week3: {
+      1: "aisle",
+      2: "aloud",
+      3: "affect",
+      4: "alter",
+      5: "ascent",
+      6: "bridal",
+      7: "cereal",
+      8: "complement",
+      9: "altar",
+      10: "assent",
+    },
+    Week4: {
+      1: "father",
+      2: "herd",
+      3: "led",
+      4: "morning",
+      5: "farther",
+      6: "lead",
+      7: "guest",
+      8: "mourning",
+      9: "guessed",
+      10: "heard",
+    },
+    Week5: {
+      1: "stationery",
+      2: "principle",
+      3: "weary",
+      4: "profit",
+      5: "whose",
+      6: "steal",
+      7: "precede",
+      8: "who's",
+      9: "stationary",
+      10: "passed",
+    },
+    Week6: {
+      1: "initial",
+      2: "controversial",
+      3: "beneficial",
+      4: "confidential",
+      5: "essential",
+      6: "unofficial",
+      7: "presidential",
+      8: "impartial",
+      9: "financial",
+      10: "commercial",
+    },
+  },
+  Spring2: {
+    Week1: {
+      1: "infectious",
+      2: "ambitious",
+      3: "conscientious",
+      4: "nutritious",
+      5: "cautious",
+      6: "conscientious",
+      7: "repetitious",
+      8: "scrumptious",
+      9: "fictitious",
+      10: "superstitious",
+    },
+    Week2: {
+      1: "vicious",
+      2: "conscious",
+      3: "suspicious",
+      4: "atrocious",
+      5: "gracious",
+      6: "delicious",
+      7: "malicious",
+      8: "precious",
+      9: "ferocious",
+      10: "tenacious",
+    },
+  },
 };
 
 // initiate the synth
@@ -161,7 +268,7 @@ startButton.disabled = false;
 let started = false;
 const stopButton = document.querySelector("#stop");
 stopButton.disabled = true;
-let stopped = false;
+let stopped = true;
 const pauseButton = document.querySelector("#pause");
 pauseButton.disabled = true;
 let paused = false;
@@ -169,7 +276,7 @@ const resumeButton = document.querySelector("#resume");
 resumeButton.disabled = true;
 let resumed = false;
 const showModal = document.querySelector("#show-modal");
-showModal.style.visibility = 'hidden';
+showModal.style.visibility = "hidden";
 const spellingsModal = document.getElementById("spellings-modal");
 const modalBody = spellingsModal.querySelector(".modal-body");
 
@@ -177,15 +284,15 @@ const modalBody = spellingsModal.querySelector(".modal-body");
 const addModalBody = (body) => {
   spellingsModal.addEventListener("show.bs.modal", (event) => {
     const list = document.createElement("ul");
-    body.forEach((word)=> {
+    body.forEach((word) => {
       const item = document.createElement("li");
       item.innerHtml = `<p>${word}</p>`;
-      list.appendChild(item)
+      list.appendChild(item);
     });
-    
+
     modalBody.appendChild(list);
   });
-}
+};
 
 // get the delay and display value
 const delay = document.querySelector("#delay");
@@ -241,35 +348,6 @@ const GBvoice = voices.filter((voice) => {
   return voice.lang == "en-GB";
 });
 
-// listen to the stop button
-stopButton.addEventListener("click", () => {
-  startButton.disabled = false;
-  stopButton.disabled = true;
-  pauseButton.disabled = true;
-  resumeButton.disabled = true;
-  started = false;
-  stopped = true;
-  paused = false;
-  resumed = true;
-
-  abc?.abort();
-});
-
-// listen to the pause button
-pauseButton.addEventListener("click", () => {
-  startButton.disabled = false;
-  stopButton.disabled = false;
-  pauseButton.disabled = true;
-  resumeButton.disabled = false;
-
-  paused = true;
-  resumed = false;
-  started = false;
-  stopped = false;
-
-  abc?.abort();
-});
-
 // speak a single word
 const speakWord = async (word) => {
   return new Promise((resolve, reject) => {
@@ -294,18 +372,19 @@ async function sliceWords(wordArray) {
 
 var remainingWords = [];
 
-let abc = null;
-
 // define the function to add a delay between words
 const wait = async (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// start the spelling practice
-startButton.onclick = async function () {
+// placeholder for AbortController
+let abc = null;
+
+// function to start spellings
+const startSpellings = async () => {
   startButton.disabled = true;
   stopButton.disabled = false;
   pauseButton.disabled = false;
   resumeButton.disabled = true;
-  showModal.style.visibility = 'hidden';
+  showModal.style.visibility = "hidden";
 
   started = true;
   stopped = false;
@@ -344,13 +423,15 @@ startButton.onclick = async function () {
       stopButton.disabled = true;
       pauseButton.disabled = true;
       resumeButton.disabled = true;
-      showModal.style.visibility = 'visible';
+      showModal.style.visibility = "visible";
     }
   }
 };
 
-// resume the spelling practice
-resumeButton.onclick = async function () {
+// start the spelling practice
+startButton.onclick = startSpellings;
+
+const resumeSpellings = async () => {
   startButton.disabled = true;
   stopButton.disabled = false;
   pauseButton.disabled = false;
@@ -375,7 +456,65 @@ resumeButton.onclick = async function () {
       stopButton.disabled = true;
       pauseButton.disabled = true;
       resumeButton.disabled = true;
-      showModal.style.visibility = 'visible';
+      showModal.style.visibility = "visible";
     }
   }
 };
+
+// resume the spelling practice
+resumeButton.onclick = resumeSpellings;
+
+// stop spellings
+const stopSpellings = () => {
+  startButton.disabled = false;
+  stopButton.disabled = true;
+  pauseButton.disabled = true;
+  resumeButton.disabled = true;
+  started = false;
+  stopped = true;
+  paused = false;
+  resumed = false;
+
+  abc?.abort();
+};
+
+// listen to the stop button
+stopButton.onclick = stopSpellings;
+
+// pause spellings
+const pauseSpellings = () => {
+  startButton.disabled = false;
+  stopButton.disabled = true;
+  pauseButton.disabled = true;
+  resumeButton.disabled = false;
+
+  started = false;
+  stopped = false;
+  paused = true;
+  resumed = false;
+
+  abc?.abort();
+};
+// listen to the pause button
+pauseButton.onclick = pauseSpellings;
+
+// listen to the keyboard
+document.addEventListener("keyup", function (e) {
+  if (e.repeat) return;
+  if (e.key === " ") {
+    if (stopped === true || paused === true) {
+      return startSpellings();
+    }
+    if (started === true || resumed === true) {
+      return stopSpellings();
+    }
+  }
+  if (e.key === "p") {
+    if (started === true || resumed === true) {
+      return pauseSpellings();
+    }
+    if (paused === true) {
+      return resumeSpellings();
+    }
+  }
+});
