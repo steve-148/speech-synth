@@ -1,7 +1,7 @@
 // initialize tooltips
 var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-  return new bootstrap.Tooltip(tooltipTriggerEl);
+  return new bootstrap.Tooltip(tooltipTriggerEl, { trigger: "hover" });
 });
 
 // define the spelling words
@@ -305,14 +305,15 @@ const modalBody = spellingsModal.querySelector(".modal-body");
 
 // this isn't working
 const addModalBody = (body) => {
+  console.log(body);
   spellingsModal.addEventListener("show.bs.modal", (event) => {
-    const list = document.createElement("ul");
+    const list = document.createElement("ol");
     body.forEach((word) => {
       const item = document.createElement("li");
-      item.innerHtml = `<p>${word}</p>`;
+      item.innerHTML = `<p>${word}</p>`;
       list.appendChild(item);
     });
-
+    console.log(list);
     modalBody.appendChild(list);
   });
 };
@@ -540,4 +541,9 @@ document.addEventListener("keyup", function (e) {
       return resumeSpellings();
     }
   }
+});
+
+// listen to modal close
+document.addEventListener("hidden.bs.modal", function (e) {
+  modalBody.innerHTML = "";
 });
