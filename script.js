@@ -1,9 +1,8 @@
 // initialize tooltips
-var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-  return new bootstrap.Tooltip(tooltipTriggerEl)
-})
-
+  return new bootstrap.Tooltip(tooltipTriggerEl);
+});
 
 // define the spelling words
 const spellings = {
@@ -253,6 +252,30 @@ const spellings = {
       8: "precious",
       9: "ferocious",
       10: "tenacious",
+    },
+    Week3: {
+      1: "pollution",
+      2: "caution",
+      3: "organisation",
+      4: "translation",
+      5: "competition",
+      6: "explanation",
+      7: "pronunciation",
+      8: "attraction",
+      9: "revolution",
+      10: "ambition",
+    },
+    Week4: {
+      1: "explosion",
+      2: "imagination",
+      3: "persuasion",
+      4: "situation",
+      5: "provision",
+      6: "affection",
+      7: "conclusion",
+      8: "construction",
+      9: "evasion",
+      10: "ambition",
     },
   },
 };
